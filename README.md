@@ -1,37 +1,50 @@
 # GitHub User Activity CLI
 
-Aplikasi **GitHub User Activity CLI** adalah program berbasis Command Line Interface (CLI) yang dibuat menggunakan bahasa **Go**. Program ini mengambil aktivitas terbaru dari seorang pengguna GitHub melalui **GitHub REST API**, kemudian menampilkannya dalam format yang mudah dibaca di terminal.
+Aplikasi **GitHub User Activity CLI** adalah program berbasis antarmuka terminal interaktif (TUI) yang dibuat menggunakan bahasa **Go** dan ekosistem **Charmbracelet** (`bubbletea`, `lipgloss`). Program ini mengambil aktivitas terbaru dari seorang pengguna GitHub melalui **GitHub REST API**, kemudian menampilkannya dalam format UI terminal yang cantik, berwarna, dan interaktif.
 
 Project ini dibuat sebagai sarana belajar mengenai:
 
 - Pemrograman Go dasar
-- HTTP Client (`net/http`)
-- Parsing JSON (`encoding/json`)
-- Command Line Interface (CLI) & Flag Parsing
-- Penanganan error (Error Handling)
+- HTTP Client (`net/http`) & Parsing JSON (`encoding/json`)
+- Pembuatan Terminal User Interface (TUI) menggunakan arsitektur Elm (*Model-Update-View*)
+- Layouting dan *styling* terminal dengan `lipgloss`
+- Penggunaan komponen interaktif seperti `spinner`, `viewport`, dan navigasi Tab.
 - Konsumsi REST API
-- Struktur project Go yang ringkas dan *Lean*
 
 ---
 
-## Fitur
+## Cuplikan Tampilan (Screenshots)
 
-- Mengambil aktivitas terbaru pengguna GitHub
-- Menampilkan aktivitas dalam format yang mudah dibaca
-- **Filter Berdasarkan Waktu**: Menampilkan aktivitas untuk hari ini, kemarin, atau beberapa hari ke belakang (menggunakan flag `-days`)
-- Menerima username GitHub melalui command line
-- Menangani error dengan pesan bantuan bawaan (`--help`)
-- Menggunakan **library bawaan Go** tanpa dependensi pihak ketiga
+### 1. Tampilan Daftar Aktivitas (Scrollable)
+![Tampilan Aktivitas](.assets/activity.jpg)
+
+### 2. Navigasi Tab Repositories
+![Tampilan Tab Repositories](.assets/repo.jpg)
+
+### 3. Menu Bantuan (Help)
+![Menu Bantuan](.assets/help.jpg)
 
 ---
 
-## Teknologi
+## Fitur Utama
 
-- Go
-- GitHub REST API
-- HTTP Client (`net/http`)
-- JSON (`encoding/json`)
-- CLI Flags (`flag`)
+- **Tampilan Interaktif**: Dibangun menggunakan Bubble Tea, menghadirkan interaksi UI langsung di dalam terminal.
+- **Navigasi Tabs**: Dukungan perpindahan tab menggunakan tombol panah (`Kiri/Kanan`) atau `Tab` (misalnya untuk fitur *Aktivitas* dan *Repositories*).
+- **Animasi Loading**: Menampilkan *spinner* yang halus ketika aplikasi melakukan request data secara asinkron ke GitHub API.
+- **Scrollable Viewport**: Jika aktivitas yang ditampilkan lebih dari ukuran layar, Anda bisa melakukan *scroll* ke atas/bawah dengan mudah.
+- **Filter Berdasarkan Waktu**: Menampilkan aktivitas untuk hari ini, kemarin, atau beberapa hari ke belakang (menggunakan flag `-days`).
+- **Styling Warna Dinamis**: Penyorotan (*highlight*) repositori dan angka commit menggunakan palet warna cantik dari `lipgloss`.
+
+---
+
+## Teknologi yang Digunakan
+
+- **Bahasa**: Go 1.26
+- **API**: GitHub REST API
+- **Library TUI**:
+  - `github.com/charmbracelet/bubbletea` (Framework utama)
+  - `github.com/charmbracelet/bubbles` (Komponen Spinner & Viewport)
+  - `github.com/charmbracelet/lipgloss` (Engine layout dan pewarnaan)
 
 ---
 
@@ -42,40 +55,35 @@ github-user-activity/
 │
 ├── cmd/
 │   └── github-activity/
-│       └── main.go          # Entry point aplikasi & logika filter
+│       └── main.go          # Entry point & inisialisasi Bubble Tea Program
 │
 ├── internal/
 │   ├── github/
 │   │   ├── client.go        # Komunikasi jaringan (HTTP Client)
 │   │   └── models.go        # Definisi struktur data (JSON Struct)
 │   │
+│   ├── ui/
+│   │   └── tui.go           # Logika interaktif TUI (Model, Update, View)
+│   │
 │   └── formatter/
-│       └── formatter.go     # Pencetakan teks terminal (CLI Output)
+│       └── formatter.go     # Pencetakan format event berpadu lipgloss
 │
+├── .assets/                 # Aset tangkapan layar untuk dokumentasi
 ├── go.mod
+├── go.sum
 └── README.md
 ```
 
 ---
 
-## Cara Kerja
+## Cara Kerja Aplikasi
 
-1. Pengguna menjalankan program melalui terminal.
-2. Program menguraikan parameter CLI (`username` dan filter `-days`).
-3. Program mengirim permintaan HTTP GET ke GitHub API.
-4. GitHub mengembalikan JSON data aktivitas (maks 30 event).
-5. Program *parse* JSON ke objek Go dan menyaring event jika diperlukan.
-6. Hasilnya ditampilkan ke layar terminal secara dinamis.
-
----
-
-## Endpoint API
-
-Program menggunakan endpoint berikut:
-
-```
-GET https://api.github.com/users/{username}/events
-```
+1. Pengguna menjalankan program melalui terminal dengan memberikan parameter `username`.
+2. Program merender UI `bubbletea` dalam mode layar penuh (AltScreen) lalu menampilkan animasi *loading*.
+3. Sebuah *command* `tea.Cmd` di belakang layar mengirim HTTP GET ke GitHub API.
+4. Setelah JSON di-parse dan difilter, program mengirim sebuah pesan (*Message*) ke TUI.
+5. Antarmuka berhenti menampilkan loading dan mengubah tampilan (View) untuk merender tabel/list aktivitas ke dalam *Viewport* yang bisa di-scroll.
+6. Pengguna bisa keluar dari aplikasi dengan aman menekan `q`, `Esc`, atau `Ctrl+C`.
 
 ---
 
@@ -85,119 +93,55 @@ Clone repository:
 
 ```bash
 git clone https://github.com/username/github-user-activity.git
-```
-
-Masuk ke folder project:
-
-```bash
 cd github-user-activity
 ```
 
-Jalankan program (default 30 aktivitas terbaru tanpa filter waktu):
+Jalankan program (otomatis mengunduh dependensi module Go):
 
 ```bash
-go run ./cmd/github-activity/main.go torvalds
+go run ./cmd/github-activity mathfha
 ```
 
 Jalankan dengan memfilter jumlah hari ke belakang:
 
 ```bash
-go run ./cmd/github-activity/main.go -days 0 torvalds   # Hanya aktivitas hari ini
-go run ./cmd/github-activity/main.go -days 3 torvalds   # Aktivitas dalam 3 hari terakhir
+go run ./cmd/github-activity -days 0 mathfha   # Hanya aktivitas hari ini
+go run ./cmd/github-activity -days 3 mathfha   # Aktivitas dalam 3 hari terakhir
 ```
 
 Tampilkan bantuan (Help):
 
 ```bash
-go run ./cmd/github-activity/main.go --help
+go run ./cmd/github-activity --help
 ```
 
-Atau setelah di-build:
+Atau *build* sebagai binary independen:
 
 ```bash
-go build -o github-activity ./cmd/github-activity/main.go
-./github-activity -days 1 torvalds
+go build -o github-activity ./cmd/github-activity
+./github-activity -days 1 mathfha
 ```
 
 ---
 
-## Contoh Output
+## Event GitHub yang Dikenali
 
-```text
-Aktivitas torvalds dalam 3 hari terakhir:
-
-• Melakukan push ke torvalds/linux
-• Melakukan push 3 commit ke torvalds/linux
-• Melakukan 'opened' Pull Request pada torvalds/linux
-• Memberikan bintang (star) pada golang/go
-• Membuat branch/tag baru di torvalds/linux
-```
-
----
-
-## Penanganan Error
-
-Program akan memberikan pesan yang jelas apabila terjadi kesalahan, misalnya:
-
-### Username tidak ditemukan
-
-```text
-Gagal mengambil data:
-pengguna 'abcdef123456' tidak ditemukan (404)
-```
-
-### Username tidak diberikan
-
-```text
-GitHub Activity CLI
-Menampilkan daftar aktivitas publik terbaru dari pengguna GitHub.
-
-Cara penggunaan:
-  github-activity [flags] <username>
-...
-```
-
----
-
-## Event yang Didukung
-
-Beberapa event GitHub yang dikenali:
-
-| Event | Deskripsi |
+| Event | Output UI |
 |---------|----------|
-| PushEvent | Push commit |
+| PushEvent | Melakukan push X commit ke repo |
 | CreateEvent | Membuat branch atau tag |
 | DeleteEvent | Menghapus branch atau tag |
-| PullRequestEvent | Pull Request |
-| IssuesEvent | Issue |
-| IssueCommentEvent | Komentar pada Issue |
-| WatchEvent | Memberikan Star |
-| ForkEvent | Fork repository |
-| ReleaseEvent | Membuat Release |
+| PullRequestEvent | Melakukan pull request |
+| IssuesEvent | Melakukan issue |
+| IssueCommentEvent | Memberikan komentar pada Issue |
+| WatchEvent | Memberikan bintang (star) |
+| ForkEvent | Melakukan fork repo |
+| ReleaseEvent | Mempublikasikan release baru |
 
-Event lain yang belum didukung akan tetap ditangani dan ditampilkan secara aman sebagai format umum.
-
----
-
-## Tujuan Pembelajaran
-
-Melalui project ini diharapkan memahami:
-
-- Menguasai `net/http` dan pembacaan *stream* IO
-- Parsing JSON
-- Clean Code (menghindari abstraksi yang terlalu *over-engineered* pada project kecil)
-- Parsing CLI Flag dengan standard library
-- Formatting Terminal
+Event lain yang belum didukung akan tetap ditangani dan ditampilkan secara aman sebagai format aksi umum.
 
 ---
 
-## Referensi
-
-- Dokumentasi Go: https://go.dev/doc/
-- GitHub REST API: https://docs.github.com/en/rest
-- Roadmap.sh Project: https://roadmap.sh/projects/github-user-activity
-
----
 ## Lisensi
 
 Project ini dibuat sebagai media pembelajaran dan dapat digunakan, dimodifikasi, maupun dikembangkan sesuai kebutuhan.
