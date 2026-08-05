@@ -1,74 +1,74 @@
 # GitHub User Activity CLI
 
-Aplikasi **GitHub User Activity CLI** adalah program berbasis antarmuka terminal interaktif (TUI) yang dibuat menggunakan bahasa **Go** dan ekosistem **Charmbracelet** (`bubbletea`, `lipgloss`). Program ini mengambil aktivitas terbaru dari seorang pengguna GitHub melalui **GitHub REST API**, kemudian menampilkannya dalam format UI terminal yang cantik, berwarna, dan interaktif.
+The **GitHub User Activity CLI** is a terminal-based interactive application built with **Go** and the **Charmbracelet** ecosystem (`bubbletea`, `lipgloss`). It fetches the latest public activity of a specified GitHub user via the **GitHub REST API** and presents it in a beautiful, colorful, and interactive Terminal User Interface (TUI).
 
-Project ini dibuat sebagai sarana belajar mengenai:
+This project serves as a practical learning medium for:
 
-- Pemrograman Go dasar
-- HTTP Client (`net/http`) & Parsing JSON (`encoding/json`)
-- Pembuatan Terminal User Interface (TUI) menggunakan arsitektur Elm (*Model-Update-View*)
-- Layouting dan *styling* terminal dengan `lipgloss`
-- Penggunaan komponen interaktif seperti `spinner`, `viewport`, dan navigasi Tab.
-- Konsumsi REST API
-
----
-
-## Cuplikan Tampilan (Screenshots)
-
-### 1. Tampilan Daftar Aktivitas (Scrollable)
-![Tampilan Aktivitas](.assets/activity.jpg)
-
-### 2. Navigasi Tab Repositories
-![Tampilan Tab Repositories](.assets/repo.jpg)
-
-### 3. Menu Bantuan (Help)
-![Menu Bantuan](.assets/help.jpg)
+- Fundamental Go programming
+- HTTP Clients (`net/http`) & JSON Parsing (`encoding/json`)
+- Building Terminal User Interfaces (TUI) using the Elm architecture (*Model-Update-View*)
+- Terminal layout and styling with `lipgloss`
+- Utilizing interactive components such as `spinner`, `viewport`, and Tab navigation
+- Consuming RESTful APIs
 
 ---
 
-## Fitur Utama
+## Screenshots
 
-- **Tampilan Interaktif**: Dibangun menggunakan Bubble Tea, menghadirkan interaksi UI langsung di dalam terminal.
-- **Navigasi Tabs**: Dukungan perpindahan tab menggunakan tombol panah (`Kiri/Kanan`) atau `Tab` (misalnya untuk fitur *Aktivitas* dan *Repositories*).
-- **Animasi Loading**: Menampilkan *spinner* yang halus ketika aplikasi melakukan request data secara asinkron ke GitHub API.
-- **Scrollable Viewport**: Jika aktivitas yang ditampilkan lebih dari ukuran layar, Anda bisa melakukan *scroll* ke atas/bawah dengan mudah.
-- **Filter Berdasarkan Waktu**: Menampilkan aktivitas untuk hari ini, kemarin, atau beberapa hari ke belakang (menggunakan flag `-days`).
-- **Styling Warna Dinamis**: Penyorotan (*highlight*) repositori dan angka commit menggunakan palet warna cantik dari `lipgloss`.
+### 1. Activity List View (Scrollable)
+![Activity View](.assets/activity.jpg)
+
+### 2. Repositories Tab Navigation
+![Repositories Tab](.assets/repo.jpg)
+
+### 3. Help Menu
+![Help Menu](.assets/help.jpg)
 
 ---
 
-## Teknologi yang Digunakan
+## Key Features
 
-- **Bahasa**: Go 1.26
+- **Interactive UI**: Built on top of Bubble Tea, providing a seamless and highly responsive terminal experience.
+- **Tabbed Navigation**: Easily switch contexts (e.g., *Activities* and *Repositories*) using the `Left/Right` arrow keys or the `Tab` key.
+- **Loading Animations**: Displays a smooth `spinner` while asynchronously fetching data from the GitHub API.
+- **Scrollable Viewport**: Handles extensive activity logs effortlessly by allowing users to scroll up and down if the content exceeds the terminal height.
+- **Time-based Filtering**: Filter activities from today, yesterday, or several days ago using the `-days` flag.
+- **Dynamic Styling**: Beautifully highlights repository names and commit counts using customizable `lipgloss` color palettes.
+
+---
+
+## Technologies Used
+
+- **Language**: Go 1.26
 - **API**: GitHub REST API
-- **Library TUI**:
-  - `github.com/charmbracelet/bubbletea` (Framework utama)
-  - `github.com/charmbracelet/bubbles` (Komponen Spinner & Viewport)
-  - `github.com/charmbracelet/lipgloss` (Engine layout dan pewarnaan)
+- **TUI Libraries**:
+  - `github.com/charmbracelet/bubbletea` (Core framework)
+  - `github.com/charmbracelet/bubbles` (Spinner & Viewport components)
+  - `github.com/charmbracelet/lipgloss` (Styling and layout engine)
 
 ---
 
-## Struktur Project
+## Project Structure
 
 ```text
 github-user-activity/
 │
 ├── cmd/
 │   └── github-activity/
-│       └── main.go          # Entry point & inisialisasi Bubble Tea Program
+│       └── main.go          # Entry point & Bubble Tea program initialization
 │
 ├── internal/
 │   ├── github/
-│   │   ├── client.go        # Komunikasi jaringan (HTTP Client)
-│   │   └── models.go        # Definisi struktur data (JSON Struct)
+│   │   ├── client.go        # Network communication (HTTP Client)
+│   │   └── models.go        # Data structure definitions (JSON Structs)
 │   │
 │   ├── ui/
-│   │   └── tui.go           # Logika interaktif TUI (Model, Update, View)
+│   │   └── tui.go           # Interactive TUI logic (Model, Update, View)
 │   │
 │   └── formatter/
-│       └── formatter.go     # Pencetakan format event berpadu lipgloss
+│       └── formatter.go     # Event formatting integrated with lipgloss
 │
-├── .assets/                 # Aset tangkapan layar untuk dokumentasi
+├── .assets/                 # Screenshot assets for documentation
 ├── go.mod
 ├── go.sum
 └── README.md
@@ -76,57 +76,57 @@ github-user-activity/
 
 ---
 
-## Cara Kerja Aplikasi
+## How It Works
 
-1. Pengguna menjalankan program melalui terminal dengan memberikan parameter `username`.
-2. Program merender UI `bubbletea` dalam mode layar penuh (AltScreen) lalu menampilkan animasi *loading*.
-3. Sebuah *command* `tea.Cmd` di belakang layar mengirim HTTP GET ke GitHub API.
-4. Setelah JSON di-parse dan difilter, program mengirim sebuah pesan (*Message*) ke TUI.
-5. Antarmuka berhenti menampilkan loading dan mengubah tampilan (View) untuk merender tabel/list aktivitas ke dalam *Viewport* yang bisa di-scroll.
-6. Pengguna bisa keluar dari aplikasi dengan aman menekan `q`, `Esc`, atau `Ctrl+C`.
+1. The user executes the application from the terminal by providing a `username` parameter.
+2. The program launches the `bubbletea` UI in full-screen mode (AltScreen) and displays a loading animation.
+3. A background command (`tea.Cmd`) sends an asynchronous HTTP GET request to the GitHub API.
+4. Once the JSON response is parsed and filtered, the program dispatches a message to the TUI.
+5. The interface hides the loading state and updates the View to render the activity list inside a scrollable Viewport.
+6. The user can safely exit the application at any time by pressing `q`, `Esc`, or `Ctrl+C`.
 
 ---
 
-## Cara Menjalankan
+## Getting Started
 
-Clone repository:
+Clone the repository:
 
 ```bash
 git clone https://github.com/username/github-user-activity.git
 cd github-user-activity
 ```
 
-Jalankan program (otomatis mengunduh dependensi module Go):
+Run the program (automatically downloads Go module dependencies):
 
 ```bash
-go run ./cmd/github-activity mathfha
+go run ./cmd/github-activity <username>
 ```
 
-Jalankan dengan memfilter jumlah hari ke belakang:
+Run with time-based filters:
 
 ```bash
-go run ./cmd/github-activity -days 0 mathfha   # Hanya aktivitas hari ini
-go run ./cmd/github-activity -days 3 mathfha   # Aktivitas dalam 3 hari terakhir
+go run ./cmd/github-activity -days 0 <username>   # Only show today's activities
+go run ./cmd/github-activity -days 3 <username>   # Show activities from the last 3 days
 ```
 
-Tampilkan bantuan (Help):
+Display help manual:
 
 ```bash
 go run ./cmd/github-activity --help
 ```
 
-Atau *build* sebagai binary independen:
+Alternatively, build it as a standalone binary:
 
 ```bash
 go build -o github-activity ./cmd/github-activity
-./github-activity -days 1 mathfha
+./github-activity -days 1 <username>
 ```
 
 ---
 
-## Event GitHub yang Dikenali
+## Supported GitHub Events
 
-| Event | Output UI |
+| Event | UI Output Translation (ID) |
 |---------|----------|
 | PushEvent | Melakukan push X commit ke repo |
 | CreateEvent | Membuat branch atau tag |
@@ -138,10 +138,10 @@ go build -o github-activity ./cmd/github-activity
 | ForkEvent | Melakukan fork repo |
 | ReleaseEvent | Mempublikasikan release baru |
 
-Event lain yang belum didukung akan tetap ditangani dan ditampilkan secara aman sebagai format aksi umum.
+Unsupported events will fallback to a generic, safe action format indicating the exact event type performed by the user.
 
 ---
 
-## Lisensi
+## License
 
-Project ini dibuat sebagai media pembelajaran dan dapat digunakan, dimodifikasi, maupun dikembangkan sesuai kebutuhan.
+This project was built for educational purposes and is open for use, modification, and further development based on your needs.
