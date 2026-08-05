@@ -35,6 +35,10 @@ type Model struct {
 	err      error
 
 	ready bool
+	
+	// Navigation
+	activeTab int
+	tabs      []string
 }
 
 func NewModel(client github.ClientAPI, username string, days int) Model {
@@ -48,6 +52,8 @@ func NewModel(client github.ClientAPI, username string, days int) Model {
 		days:     days,
 		state:    stateLoading,
 		spinner:  s,
+		tabs:     []string{"Aktivitas", "Repositories"},
+		activeTab: 0,
 	}
 }
 
@@ -97,8 +103,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if k := msg.String(); k == "ctrl+c" || k == "q" || k == "esc" {
+		switch k := msg.String(); k {
+		case "ctrl+c", "q", "esc":
 			return m, tea.Quit
+		case "tab", "right", "l":
+			m.activeTab = (m.activeTab + 1) % len(m.tabs)
+		case "shift+tab", "left", "h":
+			m.activeTab = (m.activeTab - 1 + len(m.tabs)) % len(m.tabs)
 		}
 
 	case tea.WindowSizeMsg:
@@ -141,14 +152,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.spinner, cmd = m.spinner.Update(msg)
 		cmds = append(cmds, cmd)
 	} else if m.state == stateLoaded {
-		m.viewport, cmd = m.viewport.Update(msg)
-		cmds = append(cmds, cmd)
+		// Hanya viewport aktivitas yang butuh update scrolling
+		if m.activeTab == 0 {
+			m.viewport, cmd = m.viewport.Update(msg)
+			cmds = append(cmds, cmd)
+		}
 	}
 
 	return m, tea.Batch(cmds...)
 }
 
 func (m Model) headerView() string {
+	// Judul
 	title := fmt.Sprintf(" GitHub Activity: %s ", m.username)
 	if m.days == 0 {
 		title += "(Hari Ini) "
@@ -162,14 +177,44 @@ func (m Model) headerView() string {
 		Background(lipgloss.Color("#7D56F4")).
 		Padding(0, 1).
 		MarginBottom(1)
+		
+	titleRendered := titleStyle.Render(title)
 
-	return titleStyle.Render(title) + "\n"
+	// Tabs
+	activeTabStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("205")).
+		Border(lipgloss.NormalBorder(), false, false, true, false).
+		BorderForeground(lipgloss.Color("205")).
+		Padding(0, 1)
+
+	inactiveTabStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("240")).
+		Border(lipgloss.NormalBorder(), false, false, true, false).
+		BorderForeground(lipgloss.Color("240")).
+		Padding(0, 1)
+
+	var renderedTabs []string
+	for i, t := range m.tabs {
+		if i == m.activeTab {
+			renderedTabs = append(renderedTabs, activeTabStyle.Render(t))
+		} else {
+			renderedTabs = append(renderedTabs, inactiveTabStyle.Render(t))
+		}
+	}
+
+	// Gabungkan tab secara horizontal
+	tabsRendered := lipgloss.JoinHorizontal(lipgloss.Top, renderedTabs...)
+
+	return titleRendered + "\n" + tabsRendered + "\n"
 }
 
 func (m Model) footerView() string {
 	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).MarginTop(1)
 	if m.state == stateLoaded {
-		return helpStyle.Render("Gunakan panah/scroll untuk navigasi • Tekan 'q' untuk keluar.")
+		if m.activeTab == 0 {
+			return helpStyle.Render("Tab/Kanan: Ganti Tab • Atas/Bawah: Scroll List • Tekan 'q' untuk keluar.")
+		}
+		return helpStyle.Render("Tab/Kiri: Ganti Tab • Tekan 'q' untuk keluar.")
 	}
 	return helpStyle.Render("Tekan 'q' untuk keluar.")
 }
@@ -180,7 +225,7 @@ func (m Model) View() string {
 	}
 
 	if m.state == stateLoading {
-		return fmt.Sprintf("\n %s Mengambil aktivitas %s...\n\n%s", m.spinner.View(), m.username, m.footerView())
+		return fmt.Sprintf("\n %s Mengambil data %s...\n\n%s", m.spinner.View(), m.username, m.footerView())
 	}
 
 	if m.state == stateError {
@@ -188,5 +233,14 @@ func (m Model) View() string {
 		return fmt.Sprintf("\n%s\n%v\n\n%s", errorStyle.Render("Terjadi Kesalahan:"), m.err, m.footerView())
 	}
 
-	return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
+	// Konten berdasarkan tab aktif
+	var content string
+	if m.activeTab == 0 {
+		content = m.viewport.View()
+	} else if m.activeTab == 1 {
+		placeholderStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("245")).Italic(true).Padding(1, 2)
+		content = placeholderStyle.Render(fmt.Sprintf("Fitur list Repositories untuk %s belum diimplementasikan.\n\nSegera datang di update berikutnya!", m.username))
+	}
+
+	return fmt.Sprintf("%s\n%s\n%s", m.headerView(), content, m.footerView())
 }
