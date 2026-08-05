@@ -6,5 +6,5 @@
 *.test
 *.out
 .DS_Store
-github-activity
+/github-activity
 sk
