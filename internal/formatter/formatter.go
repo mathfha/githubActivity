@@ -4,10 +4,17 @@ import (
 	"fmt"
 
 	"github-activity/internal/github"
+	"github.com/charmbracelet/lipgloss"
+)
+
+var (
+	repoStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("205")).Bold(true)
+	actionStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("36"))
+	countStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("220")).Bold(true)
 )
 
 func FormatEvent(event github.Event) string {
-	repoName := event.Repo.Name
+	repoName := repoStyle.Render(event.Repo.Name)
 
 	switch event.Type {
 	case "PushEvent":
@@ -15,11 +22,12 @@ func FormatEvent(event github.Event) string {
 		if commitCount == 0 {
 			commitCount = len(event.Payload.Commits)
 		}
-		
+
 		if commitCount == 0 {
 			return fmt.Sprintf("Melakukan push ke %s", repoName)
 		}
-		return fmt.Sprintf("Melakukan push %d commit ke %s", commitCount, repoName)
+		c := countStyle.Render(fmt.Sprintf("%d", commitCount))
+		return fmt.Sprintf("Melakukan push %s commit ke %s", c, repoName)
 	case "CreateEvent":
 		return fmt.Sprintf("Membuat branch/tag baru di %s", repoName)
 	case "DeleteEvent":
@@ -29,13 +37,15 @@ func FormatEvent(event github.Event) string {
 		if action == "" {
 			action = "aktivitas"
 		}
-		return fmt.Sprintf("Melakukan '%s' Pull Request pada %s", action, repoName)
+		act := actionStyle.Render(action)
+		return fmt.Sprintf("Melakukan '%s' Pull Request pada %s", act, repoName)
 	case "IssuesEvent":
 		action := event.Payload.Action
 		if action == "" {
 			action = "aktivitas"
 		}
-		return fmt.Sprintf("Melakukan '%s' Issue pada %s", action, repoName)
+		act := actionStyle.Render(action)
+		return fmt.Sprintf("Melakukan '%s' Issue pada %s", act, repoName)
 	case "IssueCommentEvent":
 		return fmt.Sprintf("Memberikan komentar pada Issue di %s", repoName)
 	case "WatchEvent":
@@ -45,31 +55,6 @@ func FormatEvent(event github.Event) string {
 	case "ReleaseEvent":
 		return fmt.Sprintf("Mempublikasikan release baru di %s", repoName)
 	default:
-		return fmt.Sprintf("Melakukan aktivitas jenis '%s' di %s", event.Type, repoName)
-	}
-}
-
-func PrintActivity(username string, events []github.Event, days int) {
-	if len(events) == 0 {
-		if days == 0 {
-			fmt.Printf("Tidak ada aktivitas publik terbaru untuk pengguna '%s' hari ini\n", username)
-		} else if days > 0 {
-			fmt.Printf("Tidak ada aktivitas publik terbaru untuk pengguna '%s' dalam %d hari terakhir\n", username, days)
-		} else {
-			fmt.Printf("Tidak ada aktivitas publik terbaru untuk pengguna '%s'\n", username)
-		}
-		return
-	}
-
-	if days == 0 {
-		fmt.Printf("Aktivitas %s hari ini:\n\n", username)
-	} else if days > 0 {
-		fmt.Printf("Aktivitas %s dalam %d hari terakhir:\n\n", username, days)
-	} else {
-		fmt.Printf("Aktivitas terbaru %s:\n\n", username)
-	}
-	
-	for _, event := range events {
-		fmt.Printf("• %s\n", FormatEvent(event))
+		return fmt.Sprintf("Melakukan aktivitas jenis '%s' di %s", actionStyle.Render(event.Type), repoName)
 	}
 }

@@ -1,14 +1,14 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"os"
-	"time"
 
-	"github-activity/internal/formatter"
+	tea "github.com/charmbracelet/bubbletea"
+
 	"github-activity/internal/github"
+	"github-activity/internal/ui"
 )
 
 func main() {
@@ -35,31 +35,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
 	client := github.NewClient()
+	
+	m := ui.NewModel(client, username, *daysPtr)
+	p := tea.NewProgram(m, tea.WithAltScreen())
 
-	events, err := client.FetchUserActivity(ctx, username)
-	if err != nil {
-		fmt.Printf("Gagal mengambil data:\n%v\n", err)
+	if _, err := p.Run(); err != nil {
+		fmt.Printf("Terjadi kesalahan saat menjalankan antarmuka: %v\n", err)
 		os.Exit(1)
 	}
-
-	days := *daysPtr
-	if days >= 0 {
-		var filteredEvents []github.Event
-		
-		now := time.Now()
-		threshold := time.Date(now.Year(), now.Month(), now.Day()-days, 0, 0, 0, 0, now.Location())
-		
-		for _, event := range events {
-			if event.CreatedAt.After(threshold) {
-				filteredEvents = append(filteredEvents, event)
-			}
-		}
-		events = filteredEvents
-	}
-
-	formatter.PrintActivity(username, events, days)
 }
