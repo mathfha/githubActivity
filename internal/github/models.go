@@ -22,3 +22,12 @@ type Payload struct {
 type Commit struct {
 	Message string `json:"message"`
 }
+
+type Repository struct {
+	Name            string `json:"name"`
+	Description     string `json:"description"`
+	StargazersCount int    `json:"stargazers_count"`
+	Language        string `json:"language"`
+	Fork            bool   `json:"fork"`
+	HTMLURL         string `json:"html_url"`
+}

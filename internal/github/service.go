@@ -7,6 +7,7 @@ import (
 
 type ClientAPI interface {
 	FetchUserActivity(ctx context.Context, username string) ([]Event, error)
+	FetchUserRepositories(ctx context.Context, username string) ([]Repository, error)
 }
 
 type Service struct {

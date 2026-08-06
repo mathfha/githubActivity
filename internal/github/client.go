@@ -22,12 +22,10 @@ func NewClient() *Client {
 	}
 }
 
-func (c *Client) FetchUserActivity(ctx context.Context, username string) ([]Event, error) {
-	url := fmt.Sprintf("%s/users/%s/events", baseURL, username)
-
+func (c *Client) doRequest(ctx context.Context, url string, target interface{}) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("gagal membuat request: %w", err)
+		return fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
@@ -35,26 +33,47 @@ func (c *Client) FetchUserActivity(ctx context.Context, username string) ([]Even
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("gagal mengirim HTTP request: %w", err)
+		return fmt.Errorf("failed to send HTTP request: %w", err)
 	}
-	
 	defer resp.Body.Close()
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		var events []Event
-		if err := json.NewDecoder(resp.Body).Decode(&events); err != nil {
-			return nil, fmt.Errorf("gagal mem-parsing respons JSON: %w", err)
+		if err := json.NewDecoder(resp.Body).Decode(target); err != nil {
+			return fmt.Errorf("failed to parse JSON response: %w", err)
 		}
-		return events, nil
-
+		return nil
 	case http.StatusNotFound:
-		return nil, fmt.Errorf("pengguna '%s' tidak ditemukan (404)", username)
-		
+		return fmt.Errorf("user not found (404)")
 	case http.StatusForbidden:
-		return nil, fmt.Errorf("akses ditolak (403), kemungkinan batas *rate limit* API GitHub telah tercapai")
-		
+		return fmt.Errorf("access forbidden (403), GitHub API rate limit may have been exceeded")
 	default:
-		return nil, fmt.Errorf("API mengembalikan status yang tidak diharapkan: %d", resp.StatusCode)
+		return fmt.Errorf("unexpected API status code: %d", resp.StatusCode)
 	}
+}
+
+func (c *Client) FetchUserActivity(ctx context.Context, username string) ([]Event, error) {
+	url := fmt.Sprintf("%s/users/%s/events/public?per_page=100", baseURL, username)
+	var events []Event
+	err := c.doRequest(ctx, url, &events)
+	if err != nil {
+		if err.Error() == "user not found (404)" {
+			return nil, fmt.Errorf("user '%s' not found (404)", username)
+		}
+		return nil, err
+	}
+	return events, nil
+}
+
+func (c *Client) FetchUserRepositories(ctx context.Context, username string) ([]Repository, error) {
+	url := fmt.Sprintf("%s/users/%s/repos?per_page=100&sort=updated", baseURL, username)
+	var repos []Repository
+	err := c.doRequest(ctx, url, &repos)
+	if err != nil {
+		if err.Error() == "user not found (404)" {
+			return nil, fmt.Errorf("user '%s' not found (404)", username)
+		}
+		return nil, err
+	}
+	return repos, nil
 }

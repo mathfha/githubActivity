@@ -14,19 +14,19 @@ var (
 )
 
 var simpleEvents = map[string]string{
-	"CreateEvent":       "Membuat branch/tag baru di %s",
-	"DeleteEvent":       "Menghapus branch/tag di %s",
-	"IssueCommentEvent": "Memberikan komentar pada Issue di %s",
-	"WatchEvent":        "Memberikan bintang (star) pada %s",
-	"ForkEvent":         "Melakukan fork repo %s",
-	"ReleaseEvent":      "Mempublikasikan release baru di %s",
+	"CreateEvent":       "Created a new branch/tag in %s",
+	"DeleteEvent":       "Deleted a branch/tag in %s",
+	"IssueCommentEvent": "Commented on an issue in %s",
+	"WatchEvent":        "Starred %s",
+	"ForkEvent":         "Forked %s",
+	"ReleaseEvent":      "Published a new release in %s",
 }
 
 func formatAction(action, eventName, repoName string) string {
 	if action == "" {
-		action = "aktivitas"
+		action = "activity"
 	}
-	return fmt.Sprintf("Melakukan '%s' %s pada %s", actionStyle.Render(action), eventName, repoName)
+	return fmt.Sprintf("Performed '%s' on %s in %s", actionStyle.Render(action), eventName, repoName)
 }
 
 func FormatEvent(event github.Event) string {
@@ -44,10 +44,10 @@ func FormatEvent(event github.Event) string {
 		}
 
 		if commitCount == 0 {
-			return fmt.Sprintf("Melakukan push ke %s", repoName)
+			return fmt.Sprintf("Pushed to %s", repoName)
 		}
 		c := countStyle.Render(fmt.Sprintf("%d", commitCount))
-		return fmt.Sprintf("Melakukan push %s commit ke %s", c, repoName)
+		return fmt.Sprintf("Pushed %s commits to %s", c, repoName)
 
 	case "PullRequestEvent":
 		return formatAction(event.Payload.Action, "Pull Request", repoName)
@@ -56,6 +56,6 @@ func FormatEvent(event github.Event) string {
 		return formatAction(event.Payload.Action, "Issue", repoName)
 
 	default:
-		return fmt.Sprintf("Melakukan aktivitas jenis '%s' di %s", actionStyle.Render(event.Type), repoName)
+		return fmt.Sprintf("Performed '%s' in %s", actionStyle.Render(event.Type), repoName)
 	}
 }
